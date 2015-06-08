@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,8 +15,16 @@ namespace ChessJudge
         //Second int[0] -> 1 -> [1] -> 2 : [7] -> [8].
         //[0,0] = A1 : [7,7] = H8.
         public TileState[,] boardState{ get; set; }
+        public TileState[,] proposedState;
         public string AIA;
         public string AIB;
+        public string White;
+        public string Black;
+        public int Turn = 0;
+        public bool GameOver;
+        public TurnState currentTurn;
+        string logFilePath;
+        StringBuilder log;
 
         public Judge(string nom)
         {
@@ -27,10 +36,23 @@ namespace ChessJudge
             //Verify both ai respond to handshake
             AIA = AIOne;
             AIB = AITwo;
+
+            logFilePath = Directory.GetCurrentDirectory();
+            log.Append("Connecting AI1: " + AIOne);
+            log.AppendLine("Connecting AI2: " + AITwo);
+            File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", log.ToString());
+            log.Clear();
+
             return true;
 
             //else below.
             //return false;
+        }
+
+        public enum TurnState
+        {
+            White = 0,
+            Black = 1
         }
 
         public enum TileState
@@ -61,19 +83,132 @@ namespace ChessJudge
         /// <returns></returns>
         public bool StartGame(char x = 'X')
         {
+            //New game variables.
+            GameOver = false;
+            currentTurn = TurnState.White;
             boardState = new TileState[8, 8];
+            proposedState = new TileState[8, 8];
 
-            if(char.ToUpper(x).Equals('A'))
+            log.AppendLine("Setting Up Board...");
+            SetupBoard(boardState);
+            SetWhitePlayer(x);
+
+            log.AppendLine("StartingGame");
+
+            File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", log.ToString());
+            log.Clear();
+
+
+            while(!GameOver)
             {
-                return true;
+                Turn++;
+                log.AppendLine("Starting Turn: " + Turn.ToString());
+
+                if(currentTurn == TurnState.White)
+                {
+                    log.AppendLine("Player Turn: White");
+                    log.AppendLine("Current Board State:");
+                    PrintBoard(log, boardState);
+                    proposedState = GetMove(boardState, White);
+
+                    log.AppendLine("Proposed Move:");
+                    PrintBoard(log, proposedState);
+                    File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", log.ToString());
+                    log.Clear();
+                }
+                else
+                {
+                    log.AppendLine("Player Turn: Black");
+                    log.AppendLine("Current Board State:");
+                    PrintBoard(log, boardState);
+                    proposedState = GetMove(boardState, Black);
+
+                    log.AppendLine("Proposed Move:");
+                    PrintBoard(log, proposedState);
+                    File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", log.ToString());
+                    log.Clear();
+                }
+
+                log.AppendLine("Verifying Move Validity");
+                GameOver = ValidateMove(boardState, proposedState);
+                File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", log.ToString());
+                log.Clear();
+
+                //Swap turns
+                if (currentTurn == TurnState.White)
+                {
+                    currentTurn = TurnState.Black;
+                }
+                else
+                {
+                    currentTurn = TurnState.White;
+                }
             }
-            else if(char.ToUpper(x).Equals('B'))
+
+            return true;
+        }
+
+        public void PrintBoard(StringBuilder logFile, TileState[,] boardToPrint)
+        {
+            log.AppendLine("  A B C D E F G H");
+            for(int i=0; i<8; i++)
             {
-                return true;
+                //Append a row
+                log.AppendLine("1  " + boardToPrint[0, i].ToString() + " " + boardToPrint[1, i].ToString() + " " + boardToPrint[2, i].ToString() + " " + boardToPrint[3, i].ToString()
+                    + boardToPrint[4, i].ToString() + " " + boardToPrint[5, i].ToString() + " " + boardToPrint[6, i].ToString() + " " + boardToPrint[7, i].ToString());
+            }
+            File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", log.ToString());
+            log.Clear();
+        }
+
+        public TileState[,] GetMove(TileState[,] board, String AI)
+        {
+            TileState[,] proposedTurn = new TileState[8,8];
+            if(AI == AIA)
+            {
+                //Call AI1 API
             }
             else
             {
-                return true;
+                //CALL AI2 API
+            }
+
+            return proposedTurn; 
+        }
+
+        public bool ValidateMove(TileState[,] boardBefore, TileState[,] boardAfter)
+        {
+            
+            return false;
+        }
+
+        public void SetWhitePlayer(char x)
+        {
+            if (char.ToUpper(x).Equals('A'))
+            {
+                White = AIA;
+                Black = AIB;
+            }
+            else if (char.ToUpper(x).Equals('B'))
+            {
+                White = AIB;
+                Black = AIA;
+            }
+            else
+            {   
+                Random rng = new Random();
+                int first = rng.Next(0, 1);
+
+                if (first == 0)
+                {
+                    White = AIA;
+                    Black = AIB;
+                }
+                else
+                {
+                    White = AIB;
+                    Black = AIA;
+                }
             }
         }
 
