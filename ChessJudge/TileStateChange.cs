@@ -8,22 +8,16 @@ namespace ChessJudge
 {
     class TileStateChange
     {
-        public int oldLetter;
-        public int oldNumber;
+        public int Letter;
+        public int Number;
         public Judge.TileState oldState;
-
-        public int newLetter;
-        public int newNumber;
         public Judge.TileState newState;
 
-        public TileStateChange(int fl, int fn, Judge.TileState fs, int sl, int sn, Judge.TileState ss)
+        public TileStateChange(int l, int n, Judge.TileState fs, Judge.TileState ss)
         {
-            int oldLetter = fl;
-            int oldNumber = fn;
-            Judge.TileState oldState = fs;
-
-            int newLetter = sl;
-            int newNumber = sn;
+            int Letter = l;
+            int Number = n;
+            Judge.TileState oldState = fs;            
             Judge.TileState newState = ss;
         }
 

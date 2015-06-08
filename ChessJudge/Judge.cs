@@ -25,6 +25,7 @@ namespace ChessJudge
         public TurnState currentTurn;
         string logFilePath;
         StringBuilder log;
+        string Winner;
 
         public Judge(string nom)
         {
@@ -53,6 +54,18 @@ namespace ChessJudge
         {
             White = 0,
             Black = 1
+        }
+
+        public TurnState Swap(TurnState state)
+        {
+            if(state == TurnState.White)
+            {
+                return TurnState.Black;
+            }
+            else
+            {
+                return TurnState.White;
+            }
         }
 
         public enum TileState
@@ -135,18 +148,12 @@ namespace ChessJudge
                 log.Clear();
 
                 //Swap turns
-                if (currentTurn == TurnState.White)
-                {
-                    currentTurn = TurnState.Black;
-                }
-                else
-                {
-                    currentTurn = TurnState.White;
-                }
+                currentTurn = Swap(currentTurn);
             }
 
             return true;
         }
+
 
         public void PrintBoard(StringBuilder logFile, TileState[,] boardToPrint)
         {
@@ -160,6 +167,7 @@ namespace ChessJudge
             File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", log.ToString());
             log.Clear();
         }
+
 
         public TileState[,] GetMove(TileState[,] board, String AI)
         {
@@ -176,11 +184,202 @@ namespace ChessJudge
             return proposedTurn; 
         }
 
+
         public bool ValidateMove(TileState[,] boardBefore, TileState[,] boardAfter)
         {
-            
+            //Get all the differences between boards.
+            List<TileStateChange> changes = getChangesInBoards(boardBefore, boardAfter);
+            if(changes.Count > 1)
+            {
+                log.AppendLine("Game Over. Too many changes in move.");
+                log.AppendLine("Winner: " + Swap(currentTurn).ToString());
+                log.AppendLine("List of suggested changes.");
+
+                foreach(TileStateChange change in changes)
+                {
+                    log.AppendLine(change.Letter.ToString() + "," + change.Number.ToString() + " :" + change.oldState.ToString() + "  -->  " + change.newState.ToString());
+                }
+
+                File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", log.ToString());
+                log.Clear();
+                Winner = currentTurn.ToString();
+                return true;
+            }
+
+            TileStateChange MoveFrom, MoveTo;
+            MoveFrom = changes.First(row => row.newState == TileState.Empty);
+            MoveTo = changes.First(row => row != MoveFrom);
+
+            if(MoveFrom.oldState == TileState.Empty)
+            {
+                log.AppendLine("Pawn moved horizontal or backwards.");
+                PrintBadMove(log, MoveFrom, MoveTo);
+                return false;
+            }
+            else if(MoveFrom.oldState == TileState.WhitePawn)
+            {
+                //Letter must be one ahead.
+                //Number must be equal +/- 1
+                if ((MoveTo.Letter != MoveFrom.Letter + 1) || (MoveFrom.Number > MoveTo.Number + 1) || (MoveFrom.Number < MoveTo.Number -1))
+                {
+                    log.AppendLine("Pawn moved horizontal or backwards.");
+                    PrintBadMove(log, MoveFrom, MoveTo);
+                    return false;
+                }
+            }
+            else if(MoveFrom.oldState == TileState.BlackPawn)
+            {
+                //Letter must be one behind.
+                //Number must be equal +/- 1
+                if ((MoveTo.Letter != MoveFrom.Letter - 1) || (MoveFrom.Number > MoveTo.Number + 1) || (MoveFrom.Number < MoveTo.Number - 1))
+                {
+                    log.AppendLine("Pawn moved horizontal or backwards.");
+                    PrintBadMove(log, MoveFrom, MoveTo);
+                    return false;
+                }
+            }
+            else if((MoveFrom.oldState == TileState.WhiteKing) || (MoveFrom.oldState  == TileState.BlackKing))
+            {
+                //Letter must be one ahead or behind
+                //Number must be one ahead or behind
+                if (((MoveTo.Number != MoveFrom.Number - 1) && (MoveTo.Number != MoveFrom.Number + 1)) || ((MoveTo.Letter != MoveFrom.Letter + 1) && (MoveTo.Letter != MoveFrom.Letter + 1)))
+                {
+                    log.AppendLine("King moved more than one space.");
+                    PrintBadMove(log, MoveFrom, MoveTo);
+                    return false;
+                }
+            }
+            else if ((MoveFrom.oldState == TileState.WhiteCastle) || (MoveFrom.oldState == TileState.BlackCastle))
+            {
+                if (MoveFrom.Number == MoveTo.Number)
+                {
+                    //Peice moved right
+                    if (MoveFrom.Letter < MoveTo.Letter)
+                    {
+                        for (int i = MoveFrom.Letter + 1; i < MoveTo.Letter; i++)
+                        {
+                            //Verify each tile between is empty.
+                            if (boardBefore[i, MoveFrom.Number] != TileState.Empty)
+                            {
+                                log.AppendLine("Castle is moving through a unit!");
+                                log.AppendLine("Unit: " + boardBefore[i, MoveFrom.Number].ToString());
+                                log.AppendLine("Position: " + i + "," + MoveFrom.Number);
+
+                                PrintBadMove(log, MoveFrom, MoveTo);
+                                return false;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        //Peice moved left
+                        for (int i = MoveFrom.Letter - 1; i > MoveTo.Letter; i--)
+                        {
+                            //Verify each tile between is empty.
+                            if (boardBefore[i, MoveFrom.Number] != TileState.Empty)
+                            {
+                                log.AppendLine("Castle is moving through a unit!");
+                                log.AppendLine("Unit: " + boardBefore[i, MoveFrom.Number].ToString());
+                                log.AppendLine("Position: " + i + "," + MoveFrom.Number);
+
+                                PrintBadMove(log, MoveFrom, MoveTo);
+                                return false;
+                            }
+                        }
+                    }
+                }
+                else if(MoveTo.Letter == MoveFrom.Letter)
+                {
+                    //Peice moved up
+                    if (MoveFrom.Number < MoveTo.Number)
+                    {
+                        for (int i = MoveFrom.Number + 1; i < MoveTo.Number; i++)
+                        {
+                            //Verify each tile between is empty.
+                            if (boardBefore[i, MoveFrom.Letter] != TileState.Empty)
+                            {
+                                log.AppendLine("Castle is moving through a unit!");
+                                log.AppendLine("Unit: " + boardBefore[i, MoveFrom.Letter].ToString());
+                                log.AppendLine("Position: " + i + "," + MoveFrom.Letter);
+
+                                PrintBadMove(log, MoveFrom, MoveTo);
+                                return false;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        //Peice moved down
+                        for (int i = MoveFrom.Number - 1; i > MoveTo.Number; i--)
+                        {
+                            //Verify each tile between is empty.
+                            if (boardBefore[i, MoveFrom.Letter] != TileState.Empty)
+                            {
+                                log.AppendLine("Castle is moving through a unit!");
+                                log.AppendLine("Unit: " + boardBefore[i, MoveFrom.Letter].ToString());
+                                log.AppendLine("Position: " + i + "," + MoveFrom.Letter);
+
+                                PrintBadMove(log, MoveFrom, MoveTo);
+                                return false;
+                            }
+                        }
+                    }
+                }
+                else if ((MoveTo.Number != MoveFrom.Number) && (MoveTo.Letter != MoveFrom.Letter))  //Either letter or number must be equal, only one axis can be different.
+                {
+                    log.AppendLine("Castle is moving on both axis!");
+                    PrintBadMove(log, MoveFrom, MoveTo);
+                    return false;
+                }
+            }
+
+            //Verify not suicide || stalemate || win
+
+            File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", log.ToString());
+            log.Clear();
+
+            //If moving peice is anything but a knight we need to make sure they didn't move through another peice.
+            if(MoveFrom.oldState != TileState.BlackKnight || MoveFrom.oldState != TileState.WhiteKnight)
+            {
+              
+
+            }
+
             return false;
         }
+
+        public void PrintBadMove(StringBuilder logger, TileStateChange moveFrom, TileStateChange moveTo)
+        {
+            logger.AppendLine("Chess Peice: " + moveFrom.oldState);
+            logger.AppendLine("Old Location: " + moveFrom.Letter.ToString() + "," + moveFrom.Number.ToString());
+            logger.AppendLine("New Location: " + moveTo.Letter.ToString() + "," + moveTo.Number.ToString());
+            logger.AppendLine("New Location previous state: " + moveTo.oldState);
+            File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", logger.ToString());
+            logger.Clear();
+        }
+
+
+        public List<TileStateChange> getChangesInBoards(TileState[,] boardBefore, TileState[,] boardAfter)
+        {
+            List<TileStateChange> changesInBoards = new List<TileStateChange>();
+
+            //Loop through a baord comparing to the other board
+            for (int i = 0; i < 7; i++ )
+            {
+                for(int j = 0; j < 7; j++)
+                {
+                    if(boardBefore[i,j] != boardAfter[i,j])
+                    {
+                        //We found a change :D
+                        TileStateChange changedTile = new TileStateChange(i, j, boardBefore[i, j], boardAfter[i, j]);
+                        changesInBoards.Add(changedTile);
+                    }
+                }
+            }
+
+            return changesInBoards;
+        }
+
 
         public void SetWhitePlayer(char x)
         {
