@@ -39,11 +39,11 @@ namespace ChessJudge
                 case Judge.TileState.WhiteCastle:
                     return" WC"; 
                 case Judge.TileState.WhiteKing:
-                    return" WX"; 
+                    return" WX";
                 case Judge.TileState.WhiteQueen:
                     return" WQ"; 
                 default:
-                    return"X"; 
+                    return" X"; 
             }
         }    
     }

@@ -17,10 +17,9 @@ namespace ChessJudge
         {
             Letter = l;
             Number = n;
-            Judge.TileState oldState = fs;            
-            Judge.TileState newState = ss;
+            oldState = fs;            
+            newState = ss;
         }
-
 
     }
 }

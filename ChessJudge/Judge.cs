@@ -42,7 +42,7 @@ namespace ChessJudge
             logFilePath = Directory.GetCurrentDirectory();
             log.Append("Connecting AI1: " + AIOne);
             log.AppendLine("Connecting AI2: " + AITwo);
-            File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", log.ToString());
+            File.AppendAllText(logFilePath + "log" + Guid.NewGuid().ToString() + ".txt", log.ToString());
             log.Clear();
 
             return true;
@@ -123,7 +123,7 @@ namespace ChessJudge
 
             log.AppendLine("StartingGame");
 
-            File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", log.ToString());
+            File.AppendAllText(logFilePath + "log" + Guid.NewGuid().ToString() + ".txt", log.ToString());
             log.Clear();
 
 
@@ -136,30 +136,30 @@ namespace ChessJudge
                 {
                     log.AppendLine("Player Turn: White");
                     log.AppendLine("Current Board State:");
-                    PrintBoard(log, boardState);
+                    PrintBoard(boardState);
                     proposedState = GetMove(boardState, White);
 
                     log.AppendLine("Proposed Move:");
-                    PrintBoard(log, proposedState);
-                    File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", log.ToString());
+                    PrintBoard(proposedState);
+                    File.AppendAllText(logFilePath + "log" + Guid.NewGuid().ToString() + ".txt", log.ToString());
                     log.Clear();
                 }
                 else
                 {
                     log.AppendLine("Player Turn: Black");
                     log.AppendLine("Current Board State:");
-                    PrintBoard(log, boardState);
+                    PrintBoard(boardState);
                     proposedState = GetMove(boardState, Black);
 
                     log.AppendLine("Proposed Move:");
-                    PrintBoard(log, proposedState);
-                    File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", log.ToString());
+                    PrintBoard(proposedState);
+                    File.AppendAllText(logFilePath + "log" + Guid.NewGuid().ToString() + ".txt", log.ToString());
                     log.Clear();
                 }
 
                 log.AppendLine("Verifying Move Validity");
                 GameOver = ValidateMove(boardState, proposedState);
-                File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", log.ToString());
+                File.AppendAllText(logFilePath + "log" + Guid.NewGuid().ToString() + ".txt", log.ToString());
                 log.Clear();
 
                 //Swap turns
@@ -170,16 +170,31 @@ namespace ChessJudge
         }
 
 
-        public void PrintBoard(StringBuilder logFile, TileState[,] boardToPrint)
+        public static void PrintBoard(TileState[,] boardToPrint)
         {
-            log.AppendLine("  A B C D E F G H");
-            for(int i=0; i<8; i++)
+            log = new StringBuilder();
+            logFilePath = Directory.GetCurrentDirectory();
+            log.AppendLine("Printing Board...");
+            //Print each row.
+            for (int i = 7; i > -1; i--)
             {
-                //Append a row
-                log.AppendLine("1  " + boardToPrint[0, i].ToString() + " " + boardToPrint[1, i].ToString() + " " + boardToPrint[2, i].ToString() + " " + boardToPrint[3, i].ToString()
-                    + boardToPrint[4, i].ToString() + " " + boardToPrint[5, i].ToString() + " " + boardToPrint[6, i].ToString() + " " + boardToPrint[7, i].ToString());
+                int row = i + 1;
+                log.AppendLine("-------------------------------------");
+                log.Append("| " + row + " ");
+
+                //Print each cell
+                for (int j = 0; j < 8; j++)
+                {
+                    log.Append("|" + boardToPrint[j, i].printShortForm());
+                }
+                log.AppendLine("|");
             }
-            File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", log.ToString());
+
+            log.AppendLine("-------------------------------------");
+            log.AppendLine("| X | A | B | C | D | E | F | G | H |");
+            log.AppendLine("-------------------------------------");     
+
+            File.AppendAllText(logFilePath + "log" +  Guid.NewGuid().ToString() + ".txt", log.ToString());
             log.Clear();
         }
 
@@ -203,6 +218,9 @@ namespace ChessJudge
         public static bool ValidateMove(TileState[,] boardBefore, TileState[,] boardAfter)
         {
             //Get all the differences between boards.
+            log = new StringBuilder();
+            logFilePath = Directory.GetCurrentDirectory();
+
             List<TileStateChange> changes = getChangesInBoards(boardBefore, boardAfter);
             if(changes.Count > 2)
             {
@@ -215,14 +233,15 @@ namespace ChessJudge
                     log.AppendLine(ToLetter(change.Letter) + "," + change.Number.ToString() + " :" + change.oldState.ToString() + "  -->  " + change.newState.ToString());
                 }
 
-                File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", log.ToString());
+                File.AppendAllText(logFilePath + "log" + Guid.NewGuid().ToString() + ".txt", log.ToString());
                 log.Clear();
                 Winner = currentTurn.ToString();
                 return true;
             }
 
-            MoveFrom = changes.First(row => row.newState == TileState.Empty);
-            MoveTo = changes.First(row => row != MoveFrom);
+            //Get us row where states changed and new state is empty.
+            MoveFrom = changes.First(row => (row.oldState != row.newState) && (row.newState == TileState.Empty));
+            MoveTo = changes.First(row => (row.oldState != row.newState) && (row.newState == MoveFrom.oldState));
 
             if(MoveFrom.oldState == TileState.Empty)
             {
@@ -297,6 +316,9 @@ namespace ChessJudge
                                 log.AppendLine("Position: " + i + "," + MoveFrom.Number);
 
                                 PrintBadMove(log, MoveFrom, MoveTo);
+
+                                File.AppendAllText(logFilePath + "log" + Guid.NewGuid().ToString() + ".txt", log.ToString());
+                                log.Clear();
                                 return false;
                             }
                         }
@@ -312,9 +334,10 @@ namespace ChessJudge
                             //Verify each tile between is empty.
                             if (boardBefore[i, MoveFrom.Letter] != TileState.Empty)
                             {
+                                Console.Write("Castle is moving through a unit!");
                                 log.AppendLine("Castle is moving through a unit!");
                                 log.AppendLine("Unit: " + boardBefore[i, MoveFrom.Letter].ToString());
-                                log.AppendLine("Position: " + i + "," + ToLetter(MoveFrom.Letter));
+                                log.AppendLine("Position: " +  ToLetter(MoveFrom.Letter) + "," + i);
 
                                 PrintBadMove(log, MoveFrom, MoveTo);
                                 return false;
@@ -368,7 +391,7 @@ namespace ChessJudge
 
             //Verify not suicide || stalemate || win
 
-            File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", log.ToString());
+            File.AppendAllText(logFilePath + "log" + Guid.NewGuid().ToString() + ".txt", log.ToString());
             log.Clear();
 
             //If moving peice is anything but a knight we need to make sure they didn't move through another peice.
@@ -384,58 +407,42 @@ namespace ChessJudge
         public static void PrintBadMove(StringBuilder logger, TileStateChange moveFrom, TileStateChange moveTo)
         {
             //Print each row.
-            for (int i = 8; i > 0; i--)
+            for (int i = 7; i > -1; i--)
             {
-                logger.AppendLine("-----------------------------------");
-                logger.AppendLine("| " + ToLetter(i) + " ");
+                int row = i + 1;
+                logger.AppendLine("-------------------------------------");
+                logger.Append("| " + row + " ");
 
                 //Print each cell
-                for (int j = 7; j > 0; j--)
+                for (int j = 0; j < 8; j++)
                 {
                     //If Move From position has on either of these point print it.
-                    if((moveFrom.Number == i) && (moveFrom.Letter == j))
+                    if((moveFrom.Letter == j) && (moveFrom.Number == i))
                     {
-                        logger.Append("| " + moveFrom.oldState.printShortForm() + " ");
+                        logger.Append("| " + moveFrom.oldState.printShortForm());
                     }
-                    else if((moveTo.Number == i) || (moveTo.Letter == j))
+                    else if ((moveTo.Letter == j) && (moveTo.Number == i))
                     {
-                        logger.Append("| " + moveTo.newState.printShortForm() + " "); 
+                        logger.Append("| " + moveTo.newState.printShortForm()); 
                     }
                     else
                     {
                         logger.Append("| E ");
                     }
                 }
-
-                logger.Append("|");
+                logger.AppendLine("|");
             }
 
-
+            logger.AppendLine("-------------------------------------");     
             logger.AppendLine("| X | A | B | C | D | E | F | G | H |");
-            logger.AppendLine("-----------------------------------");                
-            
-            //logger.AppendLine("-----------------------------------");
-            //logger.AppendLine("| 7 | E | E | E | E | E | E | E | E |");
-            //logger.AppendLine("----------------------------------");
-            //logger.AppendLine("| 6 | E | E | E | E | E | 1 | E | E |");
-            //logger.AppendLine("-----------------------------------");
-            //logger.AppendLine("| 5 | E | E | E | E | E | E | E | E |");
-            //logger.AppendLine("-----------------------------------");
-            //logger.AppendLine("| 4 | E | E | E | E | E | E | E | E |");
-            //logger.AppendLine("-----------------------------------");
-            //logger.AppendLine("| 3 | E | E | 0 | E | E | E | E | E |");
-            //logger.AppendLine("-----------------------------------");
-            //logger.AppendLine("| 2 | E | E | E | E | E | E | E | E |");
-            //logger.AppendLine("-----------------------------------");
-            //logger.AppendLine("| 1 | E | E | E | E | E | E | E | E |");
-            //logger.AppendLine("-----------------------------------");
-            //logger.AppendLine("| X | A | B | C | D | E | F | G | H |");
-            //logger.AppendLine("-----------------------------------");
+            logger.AppendLine("-------------------------------------");     
+
+
             logger.AppendLine("Chess Peice: " + moveFrom.oldState);
             logger.AppendLine("Old Location: " + ToLetter(moveFrom.Letter) + "," + moveFrom.Number.ToString());
             logger.AppendLine("New Location: " + ToLetter(moveTo.Letter) + "," + moveTo.Number.ToString());
             logger.AppendLine("New Location previous state: " + moveTo.oldState);
-            File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", logger.ToString());
+            File.AppendAllText(logFilePath + @"\log" + Guid.NewGuid().ToString() + ".txt", logger.ToString());
             logger.Clear();
         }
 
@@ -499,7 +506,7 @@ namespace ChessJudge
 
             //Setup white back peices
             currentBoard[0, 0] = TileState.WhiteCastle;
-            currentBoard[1, 0] = TileState.WhiteKing;
+            currentBoard[1, 0] = TileState.WhiteKnight;
             currentBoard[2, 0] = TileState.WhiteBishop;
             currentBoard[3, 0] = TileState.WhiteQueen;
             currentBoard[4, 0] = TileState.WhiteKing;
@@ -520,7 +527,7 @@ namespace ChessJudge
 
             //Setup back Black peices
             currentBoard[0, 7] = TileState.BlackCastle;
-            currentBoard[1, 7] = TileState.BlackKing;
+            currentBoard[1, 7] = TileState.BlackKnight;
             currentBoard[2, 7] = TileState.BlackBishop;
             currentBoard[3, 7] = TileState.BlackQueen;
             currentBoard[4, 7] = TileState.BlackKing;
