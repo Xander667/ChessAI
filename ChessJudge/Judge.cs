@@ -23,7 +23,7 @@ namespace ChessJudge
         public int Turn = 0;
         public bool GameOver;
         public TurnState currentTurn;
-        string logFilePath;
+        public string logFilePath;
         StringBuilder log;
         string Winner;
 
@@ -50,12 +50,6 @@ namespace ChessJudge
             //return false;
         }
 
-        public enum TurnState
-        {
-            White = 0,
-            Black = 1
-        }
-
         public TurnState Swap(TurnState state)
         {
             if(state == TurnState.White)
@@ -66,6 +60,24 @@ namespace ChessJudge
             {
                 return TurnState.White;
             }
+        }
+
+        public enum Letter
+        {
+            A = 0,
+            B = 1,
+            C = 2,
+            D = 3,
+            E = 4,
+            F = 5,
+            G = 6,
+            H = 7
+        }
+
+        public enum TurnState
+        {
+            White = 0,
+            Black = 1
         }
 
         public enum TileState
@@ -84,6 +96,8 @@ namespace ChessJudge
             BlackQueen = 15,
             BlackKing = 16
         };
+
+        
 
         /// <summary>
         /// Starts the game. 
@@ -197,7 +211,7 @@ namespace ChessJudge
 
                 foreach(TileStateChange change in changes)
                 {
-                    log.AppendLine(change.Letter.ToString() + "," + change.Number.ToString() + " :" + change.oldState.ToString() + "  -->  " + change.newState.ToString());
+                    log.AppendLine(ToLetter(change.Letter) + "," + change.Number.ToString() + " :" + change.oldState.ToString() + "  -->  " + change.newState.ToString());
                 }
 
                 File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", log.ToString());
@@ -300,7 +314,7 @@ namespace ChessJudge
                             {
                                 log.AppendLine("Castle is moving through a unit!");
                                 log.AppendLine("Unit: " + boardBefore[i, MoveFrom.Letter].ToString());
-                                log.AppendLine("Position: " + i + "," + MoveFrom.Letter);
+                                log.AppendLine("Position: " + i + "," + ToLetter(MoveFrom.Letter));
 
                                 PrintBadMove(log, MoveFrom, MoveTo);
                                 return false;
@@ -317,7 +331,7 @@ namespace ChessJudge
                             {
                                 log.AppendLine("Castle is moving through a unit!");
                                 log.AppendLine("Unit: " + boardBefore[i, MoveFrom.Letter].ToString());
-                                log.AppendLine("Position: " + i + "," + MoveFrom.Letter);
+                                log.AppendLine("Position: " + i + "," + ToLetter(MoveFrom.Letter));
 
                                 PrintBadMove(log, MoveFrom, MoveTo);
                                 return false;
@@ -331,6 +345,25 @@ namespace ChessJudge
                     PrintBadMove(log, MoveFrom, MoveTo);
                     return false;
                 }
+            }
+            else if ((MoveFrom.oldState == TileState.WhiteBishop) || (MoveFrom.oldState == TileState.BlackBishop))
+            {
+                int beforeSum = MoveFrom.Letter + MoveFrom.Number;
+                int afterSum = MoveTo.Letter + MoveTo.Number;
+                int letterDif = MoveFrom.Letter - MoveTo.Letter;
+                int numberDif = MoveFrom.Number - MoveTo.Number;
+
+                //Verify either sum of letter + number are equal before/after -> Moving Up Left or Down Right or
+                //else difference between letter + number are equal before/after -> Moving Down Left or Up Right.
+                if((beforeSum != afterSum) && (letterDif != numberDif))
+                {
+                    log.AppendLine("Bishop is moving to a bad cell!");
+                    PrintBadMove(log, MoveFrom, MoveTo);
+                }
+
+                //Also verify Bishop doesn't go through another unit.
+
+
             }
 
             //Verify not suicide || stalemate || win
@@ -350,9 +383,59 @@ namespace ChessJudge
 
         public void PrintBadMove(StringBuilder logger, TileStateChange moveFrom, TileStateChange moveTo)
         {
+            //Print each row.
+            for (int i = 8; i > 0; i--)
+            {
+                logger.AppendLine("-----------------------------------");
+                logger.AppendLine("| " + ToLetter(i) + " ");
+
+                //Print each cell
+                for (int j = 7; j > 0; j--)
+                {
+                    //If Move From position has on either of these point print it.
+                    if((moveFrom.Number == i) && (moveFrom.Letter == j))
+                    {
+                        logger.Append("| " + moveFrom.oldState.printShortNotation() + " ");
+                    }
+                    else if((moveTo.Number == i) || (moveTo.Letter == j))
+                    {
+                        logger.Append("| " + moveTo.newState.printShortNotation() + " "); 
+                    }
+                    else
+                    {
+                        logger.Append("| E ");
+                    }
+                }
+
+                logger.Append("|");
+            }
+
+
+            logger.AppendLine("| X | A | B | C | D | E | F | G | H |");
+            logger.AppendLine("-----------------------------------");
+
+                
+            
+            //logger.AppendLine("-----------------------------------");
+            //logger.AppendLine("| 7 | E | E | E | E | E | E | E | E |");
+            //logger.AppendLine("----------------------------------");
+            //logger.AppendLine("| 6 | E | E | E | E | E | 1 | E | E |");
+            //logger.AppendLine("-----------------------------------");
+            //logger.AppendLine("| 5 | E | E | E | E | E | E | E | E |");
+            //logger.AppendLine("-----------------------------------");
+            //logger.AppendLine("| 4 | E | E | E | E | E | E | E | E |");
+            //logger.AppendLine("-----------------------------------");
+            //logger.AppendLine("| 3 | E | E | 0 | E | E | E | E | E |");
+            //logger.AppendLine("-----------------------------------");
+            //logger.AppendLine("| 2 | E | E | E | E | E | E | E | E |");
+            //logger.AppendLine("-----------------------------------");
+            //logger.AppendLine("| 1 | E | E | E | E | E | E | E | E |");
+            //logger.AppendLine("-----------------------------------");
+            //logger.AppendLine("| X | A | B | C | D | E | F | G | H |");
+            //logger.AppendLine("-----------------------------------");
             logger.AppendLine("Chess Peice: " + moveFrom.oldState);
-            logger.AppendLine("Old Location: " + moveFrom.Letter.ToString() + "," + moveFrom.Number.ToString());
-            logger.AppendLine("New Location: " + moveTo.Letter.ToString() + "," + moveTo.Number.ToString());
+            logger.AppendLine("Old Location: " + ToLetter(moveFrom.Letter) + "," + moveFrom.Number.ToString());
+            logger.AppendLine("New Location: " + ToLetter(moveTo.Letter) + "," + moveTo.Number.ToString());
             logger.AppendLine("New Location previous state: " + moveTo.oldState);
             File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", logger.ToString());
             logger.Clear();
@@ -459,6 +542,22 @@ namespace ChessJudge
 
             return currentBoard;
         }
+
+        public string ToLetter(int i)
+        {
+            string letter = "X";
+            if (i == 0) { letter = "A"; }
+            if (i == 1) { letter = "B"; }
+            if (i == 2) { letter = "C"; }
+            if (i == 3) { letter = "D"; }
+            if (i == 4) { letter = "E"; }
+            if (i == 5) { letter = "F"; }
+            if (i == 6) { letter = "G"; }
+            if (i == 7) { letter = "H"; }
+
+            return letter;
+        }
+
 
         //Clear board of all pieces.
         public TileState[,] ClearBoard(TileState[,] board)

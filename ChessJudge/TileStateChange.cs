@@ -15,8 +15,8 @@ namespace ChessJudge
 
         public TileStateChange(int l, int n, Judge.TileState fs, Judge.TileState ss)
         {
-            int Letter = l;
-            int Number = n;
+            Letter = l;
+            Number = n;
             Judge.TileState oldState = fs;            
             Judge.TileState newState = ss;
         }
