@@ -27,7 +27,7 @@ namespace ChessJudge
             //Boards
             Judge.TileState[,] beforeBoard = new Judge.TileState[8,8];
 
-            bool valid = john.ValidateMove()
+            //bool valid = john.ValidateMove(boardBefore, boardAfter);
             //Connect Judge to AIs
         }
     }

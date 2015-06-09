@@ -10,7 +10,7 @@ namespace ChessJudge
 {
     static class TileStateMethods
     {
-        public static string printShortNotation(this Judge.TileState state)
+        public static string printShortForm(this Judge.TileState state)
         {
             string logFilePath = Directory.GetCurrentDirectory();
             StringBuilder log = new StringBuilder();
@@ -45,9 +45,6 @@ namespace ChessJudge
                 default:
                     return"X"; 
             }
-
-            File.AppendAllText(logFilePath + "log" + DateTime.Now.ToString() + ".txt", log.ToString());
-            log.Clear();
-        }       
+        }    
     }
 }

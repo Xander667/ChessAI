@@ -7,25 +7,26 @@ using System.Threading.Tasks;
 
 namespace ChessJudge
 {
-    class Judge
+    public class Judge
     {
         public string name;
 
         //First int[0] -> A -> [1] -> B : [7] -> [H]
         //Second int[0] -> 1 -> [1] -> 2 : [7] -> [8].
         //[0,0] = A1 : [7,7] = H8.
-        public TileState[,] boardState{ get; set; }
-        public TileState[,] proposedState;
-        public string AIA;
-        public string AIB;
-        public string White;
-        public string Black;
-        public int Turn = 0;
-        public bool GameOver;
-        public TurnState currentTurn;
-        public string logFilePath;
-        StringBuilder log;
-        string Winner;
+        public static TileState[,] boardState{ get; set; }
+        public static TileState[,] proposedState;
+        public static string AIA;
+        public static string AIB;
+        public static string White;
+        public static string Black;
+        public static int Turn = 0;
+        public static bool GameOver;
+        public static TurnState currentTurn;
+        public static string logFilePath;
+        public static StringBuilder log;
+        public static string Winner;
+        public static TileStateChange MoveFrom, MoveTo;
 
         public Judge(string nom)
         {
@@ -50,7 +51,7 @@ namespace ChessJudge
             //return false;
         }
 
-        public TurnState Swap(TurnState state)
+        public static TurnState Swap(TurnState state)
         {
             if(state == TurnState.White)
             {
@@ -199,11 +200,11 @@ namespace ChessJudge
         }
 
 
-        public bool ValidateMove(TileState[,] boardBefore, TileState[,] boardAfter)
+        public static bool ValidateMove(TileState[,] boardBefore, TileState[,] boardAfter)
         {
             //Get all the differences between boards.
             List<TileStateChange> changes = getChangesInBoards(boardBefore, boardAfter);
-            if(changes.Count > 1)
+            if(changes.Count > 2)
             {
                 log.AppendLine("Game Over. Too many changes in move.");
                 log.AppendLine("Winner: " + Swap(currentTurn).ToString());
@@ -220,7 +221,6 @@ namespace ChessJudge
                 return true;
             }
 
-            TileStateChange MoveFrom, MoveTo;
             MoveFrom = changes.First(row => row.newState == TileState.Empty);
             MoveTo = changes.First(row => row != MoveFrom);
 
@@ -381,7 +381,7 @@ namespace ChessJudge
             return false;
         }
 
-        public void PrintBadMove(StringBuilder logger, TileStateChange moveFrom, TileStateChange moveTo)
+        public static void PrintBadMove(StringBuilder logger, TileStateChange moveFrom, TileStateChange moveTo)
         {
             //Print each row.
             for (int i = 8; i > 0; i--)
@@ -395,11 +395,11 @@ namespace ChessJudge
                     //If Move From position has on either of these point print it.
                     if((moveFrom.Number == i) && (moveFrom.Letter == j))
                     {
-                        logger.Append("| " + moveFrom.oldState.printShortNotation() + " ");
+                        logger.Append("| " + moveFrom.oldState.printShortForm() + " ");
                     }
                     else if((moveTo.Number == i) || (moveTo.Letter == j))
                     {
-                        logger.Append("| " + moveTo.newState.printShortNotation() + " "); 
+                        logger.Append("| " + moveTo.newState.printShortForm() + " "); 
                     }
                     else
                     {
@@ -412,9 +412,7 @@ namespace ChessJudge
 
 
             logger.AppendLine("| X | A | B | C | D | E | F | G | H |");
-            logger.AppendLine("-----------------------------------");
-
-                
+            logger.AppendLine("-----------------------------------");                
             
             //logger.AppendLine("-----------------------------------");
             //logger.AppendLine("| 7 | E | E | E | E | E | E | E | E |");
@@ -442,7 +440,7 @@ namespace ChessJudge
         }
 
 
-        public List<TileStateChange> getChangesInBoards(TileState[,] boardBefore, TileState[,] boardAfter)
+        public static List<TileStateChange> getChangesInBoards(TileState[,] boardBefore, TileState[,] boardAfter)
         {
             List<TileStateChange> changesInBoards = new List<TileStateChange>();
 
@@ -494,7 +492,7 @@ namespace ChessJudge
             }
         }
 
-        public TileState[,] SetupBoard(TileState[,] board)
+        public static TileState[,] SetupBoard(TileState[,] board)
         {
             TileState[,] currentBoard = board;
             ClearBoard(currentBoard);
@@ -543,7 +541,7 @@ namespace ChessJudge
             return currentBoard;
         }
 
-        public string ToLetter(int i)
+        public static string ToLetter(int i)
         {
             string letter = "X";
             if (i == 0) { letter = "A"; }
@@ -560,7 +558,7 @@ namespace ChessJudge
 
 
         //Clear board of all pieces.
-        public TileState[,] ClearBoard(TileState[,] board)
+        public static TileState[,] ClearBoard(TileState[,] board)
         {
             TileState[,] currentBoard = board;
             

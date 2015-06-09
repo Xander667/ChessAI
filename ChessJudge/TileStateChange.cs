@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ChessJudge
 {
-    class TileStateChange
+    public class TileStateChange
     {
         public int Letter;
         public int Number;
